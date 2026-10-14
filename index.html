@@ -100,9 +100,7 @@ button:hover{border-color:var(--gold)}button:focus-visible{outline:2px solid var
       <div><span>Annual running costs</span><span id="sFix"></span></div>
       <div><span>Contingency</span><span id="sCont"></span></div>
       <div class="em"><span>Annual cost to recover</span><span id="sAnn"></span></div>
-      <div><span>Net income per student</span><span id="sNet"></span></div>
-      <div><span>Cost per student</span><span id="sVar"></span></div>
-      <div class="em"><span>Margin per student</span><span id="sCM"></span></div>
+      <div class="em"><span>Net income per student</span><span id="sNet"></span></div>
       <div><span>Revenue at expected students</span><span id="sRev"></span></div>
       <div class="em"><span>Profit or loss per year</span><span id="sProf"></span></div>
       <div><span>Price needed to break even</span><span id="sPrice"></span></div>
@@ -152,11 +150,7 @@ const DATA=[
   ['Program coordinator','Part-time coordinator or faculty stipend.',12,'months',4000],
   ['Student and technical support','Help desk, WhatsApp or email support.',12,'months',1500],
   ['Marketing','Social media ads, webinars, posters, ambassadors.',1,'per year',15000],
-  ['Accounting and admin','Invoicing, finance office time.',12,'months',500]]},
- {id:'var',title:'3. Cost per student',sub:'Self-paced, no live sessions or proctoring, flat LMS fee: close to zero. Gateway fee and university share are deducted from the price on the right.',type:'var',rows:[
-  ['Student support','Login help and content questions by email or WhatsApp.',1,'student',5],
-  ['Extra streaming or storage','Only if the LMS caps usage and charges above the cap.',1,'student',0],
-  ['Digital certificate','Automatic in most LMSs.',1,'student',0]]}
+  ['Accounting and admin','Invoicing, finance office time.',12,'months',500]]}
 ];
 const IN=[
  ['price','Price per student (excl. VAT)','SAR',1500],
@@ -190,18 +184,18 @@ function calc(){
  const priceNeed=n>0&&keep>0?(ann/n+varC)/keep:Infinity;
  const set=(id,v,cls)=>{const e=document.getElementById(id);e.textContent=v;e.className=cls||''};
  set('sOne','SAR '+f(tot.one));set('sAm','SAR '+f(am));set('sFix','SAR '+f(tot.fix));set('sCont','SAR '+f(cont));set('sAnn','SAR '+f(ann));
- set('sNet','SAR '+f(net));set('sVar','SAR '+f(varC));set('sCM','SAR '+f(cm),cm>0?'pos':'neg');
+ set('sNet','SAR '+f(net),cm>0?'pos':'neg');
  set('sRev','SAR '+f(n*eff));set('sProf','SAR '+f(prof),prof>=0?'pos':'neg');set('sPrice','SAR '+f(priceNeed));
  const b=document.getElementById('be');b.textContent=isFinite(be)?be.toLocaleString('en-US'):'Not reachable';
  b.className=isFinite(be)&&be<=n?'pos':'neg';
- document.getElementById('beNote').textContent=isFinite(be)?`students per year (you expect ${n})`:'price does not cover the cost per student';
+ document.getElementById('beNote').textContent=isFinite(be)?`students per year (you expect ${n})`:'enter a price above zero';
  document.getElementById('beBox').className='big '+(isFinite(be)&&be<=n?'ok':'no');
  const ok=prof>=0;
  document.getElementById('pBox').className='big '+(ok?'ok':'no');
  document.getElementById('pLbl').textContent=ok?'Profit':'Loss';
  const pb=document.getElementById('pBig');pb.textContent=f(Math.abs(prof));pb.className=ok?'pos':'neg';
  document.getElementById('pNote').textContent=`SAR per year with ${n} students`;
- document.getElementById('calcline').textContent=`${n} students × ${f(cm)} margin − ${f(ann)} annual cost = ${ok?'':'−'}${f(Math.abs(prof))}`;
+ document.getElementById('calcline').textContent=`${n} students × ${f(cm)} net per student −${f(ann)} annual cost = ${ok?'':'−'}${f(Math.abs(prof))}`;
 }
 document.addEventListener('input',e=>{const t=e.target;if(t.dataset.k){state.rows[t.dataset.k][+t.dataset.j]=t.value;save();calc()}else if(t.dataset.in){state.inp[t.dataset.in]=t.value;save();calc()}});
 document.getElementById('reset').addEventListener('click',()=>{state=defaults();save();render()});
