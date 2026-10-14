@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SPLE Prep Cost Planner</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: ledger sections (left) + sticky break-even summary (right); stacks on phones. Navy/gold to match the SPLE proposal deck. */
+:root{
+  --bg:#F5F6FA; --surface:#FFFFFF; --ink:#16213A; --muted:#5B6683; --line:#DCE1EC;
+  --navy:#1B2B52; --gold:#B8862B; --gold-soft:#F6EBD3; --good:#1F7A4D; --bad:#B23A2E;
+  --display:'Bricolage Grotesque',system-ui,sans-serif; --body:'IBM Plex Sans',system-ui,sans-serif; --mono:'IBM Plex Mono',ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0E1424; --surface:#161E33; --ink:#E7EAF3; --muted:#9AA4BF; --line:#2A3452;
+  --navy:#C9D4F2; --gold:#E2B45A; --gold-soft:#2D2715; --good:#5CC48E; --bad:#F0806F; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E1424; --surface:#161E33; --ink:#E7EAF3; --muted:#9AA4BF; --line:#2A3452;
+  --navy:#C9D4F2; --gold:#E2B45A; --gold-soft:#2D2715; --good:#5CC48E; --bad:#F0806F; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.55 var(--body);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:32px 56px}
+.wrap{max-width:1240px;margin:0 auto;display:flex;flex-direction:column;gap:28px}
+header{display:flex;flex-direction:column;gap:8px;max-width:72ch}
+.eyebrow{font:500 12px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
+h1{font:700 clamp(28px,4vw,42px)/1.1 var(--display);color:var(--navy);margin:0;text-wrap:balance}
+header p{margin:0;color:var(--muted)}
+.note{font-size:13px;background:var(--gold-soft);border-left:3px solid var(--gold);padding:10px 14px;border-radius:4px;color:var(--ink)}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:28px;align-items:start}
+@media (max-width:960px){.grid{grid-template-columns:minmax(0,1fr)}}
+.sections{display:flex;flex-direction:column;gap:22px;min-width:0}
+section.block{background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.bhead{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;padding:16px 18px 10px;border-bottom:1px solid var(--line)}
+.bhead h2{font:600 19px/1.2 var(--display);margin:0;color:var(--navy)}
+.bhead .sub{font-size:13px;color:var(--muted);flex-basis:100%}
+.bhead .sum{font:500 15px var(--mono);color:var(--gold)}
+.tbl{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:640px}
+th{font:500 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
+th.n,td.n{text-align:right}
+td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td .item{font-weight:600}
+td .hint{font-size:12.5px;color:var(--muted);line-height:1.4}
+input[type=number]{width:96px;font:14px var(--mono);font-variant-numeric:tabular-nums;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 7px;text-align:right}
+input[type=number]:focus{outline:2px solid var(--gold);outline-offset:1px}
+.unit{font-size:12px;color:var(--muted);white-space:nowrap}
+.tot{font:500 14px var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+aside.summary{position:sticky;top:calc(env(safe-area-inset-top,0px) + 16px);background:var(--surface);border:1px solid var(--line);border-top:4px solid var(--gold);border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:14px}
+aside h2{font:600 19px var(--display);margin:0;color:var(--navy)}
+.kv{display:flex;flex-direction:column;gap:7px}
+.kv div{display:flex;justify-content:space-between;gap:10px;font-size:14px}
+.kv span:last-child{font:500 14px var(--mono);font-variant-numeric:tabular-nums}
+.kv .em{border-top:1px solid var(--line);padding-top:7px;font-weight:600}
+.big{display:flex;flex-direction:column;gap:2px;padding:12px;background:var(--bg);border-radius:8px}
+.big b{font:600 30px var(--display);color:var(--navy);font-variant-numeric:tabular-nums}
+.big small{color:var(--muted);font-size:12.5px}
+.pos{color:var(--good)!important}.neg{color:var(--bad)!important}
+.tiles2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.big.ok{background:color-mix(in srgb,var(--good) 14%,var(--surface));border:1px solid var(--good)}
+.big.no{background:color-mix(in srgb,var(--bad) 12%,var(--surface));border:1px solid var(--bad)}
+.big .lbl{color:var(--ink)}
+.calcline{font:12px var(--mono);color:var(--muted);line-height:1.5;font-variant-numeric:tabular-nums}
+.lbl{font:500 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.inrow{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:14px}
+button{font:500 13px var(--body);color:var(--navy);background:transparent;border:1px solid var(--line);border-radius:6px;padding:7px 12px;cursor:pointer}
+button:hover{border-color:var(--gold)}button:focus-visible{outline:2px solid var(--gold)}
+.checklist{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px}
+.checklist h2{font:600 19px var(--display);margin:0 0 8px;color:var(--navy)}
+.checklist ul{margin:0;padding-left:20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:6px 28px}
+.checklist li{font-size:14px}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+<header>
+  <span class="eyebrow">SPLE preparation program · Business Model Canvas</span>
+  <h1>Cost structure and break-even planner</h1>
+  <p>Self-paced online program: no live sessions, no proctoring, flat LMS fee. Change any quantity or unit cost; the totals, break-even and profit update on the right. Amounts are in SAR.</p>
+  <div class="note"><b>The figures are examples only.</b> Replace them with real quotes from IT, faculty rates and university finance. Your edits are kept in this browser.</div>
+</header>
+
+<div class="grid">
+  <div class="sections" id="sections"></div>
+
+  <aside class="summary" aria-live="polite">
+    <h2>Revenue and break-even</h2>
+    <div class="kv" id="inputs"></div>
+    <div class="tiles2">
+      <div class="big" id="beBox"><span class="lbl">Break-even</span><b id="be">–</b><small id="beNote">students per year</small></div>
+      <div class="big" id="pBox"><span class="lbl" id="pLbl">Profit</span><b id="pBig">–</b><small id="pNote">SAR per year</small></div>
+    </div>
+    <div class="calcline" id="calcline"></div>
+    <div class="kv">
+      <div><span>One-time setup</span><span id="sOne"></span></div>
+      <div><span>Setup spread per year</span><span id="sAm"></span></div>
+      <div><span>Annual running costs</span><span id="sFix"></span></div>
+      <div><span>Contingency</span><span id="sCont"></span></div>
+      <div class="em"><span>Annual cost to recover</span><span id="sAnn"></span></div>
+      <div><span>Net income per student</span><span id="sNet"></span></div>
+      <div><span>Cost per student</span><span id="sVar"></span></div>
+      <div class="em"><span>Margin per student</span><span id="sCM"></span></div>
+      <div><span>Revenue at expected students</span><span id="sRev"></span></div>
+      <div class="em"><span>Profit or loss per year</span><span id="sProf"></span></div>
+      <div><span>Price needed to break even</span><span id="sPrice"></span></div>
+    </div>
+    <button id="reset" type="button">Reset to example figures</button>
+  </aside>
+</div>
+
+<div class="checklist">
+  <h2>Also settle before you price</h2>
+  <ul>
+    <li>Does the price include or exclude 15% VAT?</li>
+    <li>What share of revenue does the university or college keep?</li>
+    <li>Will you charge IAU students and external students different prices?</li>
+    <li>Are faculty paid per item, per hour, or as part of their workload? Unpaid time is still a real cost.</li>
+    <li>Over how many years should the setup cost be recovered (the "spread" above)?</li>
+    <li>Content must be refreshed whenever the SCFHS SPLE blueprint or major guidelines change.</li>
+    <li>Refund policy, scholarships and early-bird or group discounts.</li>
+    <li>Conversion rate: how many students who see the offer actually pay (from your pilot willingness-to-pay data).</li>
+    <li>Pricing of competitors (SCFHS resources, FADIC, other universities) caps what you can charge.</li>
+    <li>Data protection (PDPL) and who owns the question bank.</li>
+  </ul>
+</div>
+</div>
+
+<script>
+const DATA=[
+ {id:'one',title:'1. One-time setup costs',sub:'Paid once to build the program. Spread over several years in the summary.',type:'one',rows:[
+  ['Question writing','SPLE-style MCQs by faculty, with explanations. Authors also write the high-yield summary for their topic.',1500,'items',50],
+  ['Peer review and editing','Second reviewer per item, references, explanations.',1500,'items',20],
+  ['Blueprint mapping and exam design','Map items to the SCFHS SPLE blueprint and competencies.',40,'hours',300],
+  ['Recorded lectures','Recording and editing per video. Lecturers add the summary for their lecture.',30,'videos',1500],
+  ['LMS licence (one-time)','Perpetual licence; fee does not depend on the number of users. Confirm with IT.',1,'lump sum',30000],
+  ['Platform build (IT center time)','Count IT staff hours even if internal.',400,'hours',150],
+  ['Adaptive engine and analytics','Readiness score, item statistics, dashboards.',1,'lump sum',20000],
+  ['Payment gateway integration','Mada, Visa, Apple Pay set-up and testing.',1,'lump sum',5000],
+  ['Security and privacy review','Penetration test, PDPL compliance.',1,'lump sum',8000],
+  ['Branding and user interface design','Logo, page, app screens.',1,'lump sum',7000],
+  ['Approvals, contracts and IP','University approval, faculty contracts, ownership of items.',1,'lump sum',3000],
+  ['Pilot run','Incentives, surveys, analysis of diagnostic, timing, usability and WTP.',1,'lump sum',6000],
+  ['Staff training','Faculty item-writing workshop, support staff.',10,'people',300]]},
+ {id:'fix',title:'2. Annual running costs',sub:'Paid every year regardless of how many students enrol.',type:'fix',rows:[
+  ['LMS support, hosting and video streaming','Annual support or update fee (often 15–20% of the licence), server and video storage. Small but rarely zero.',1,'per year',8000],
+  ['Maintenance and bug fixes','IT hours after launch.',120,'hours',150],
+  ['Content refresh','About 20% of items updated each year for new guidelines and drugs.',300,'items',70],
+  ['Item analysis and quality review','Difficulty, discrimination, distractor review each cycle.',2,'cycles',4000],
+  ['Program coordinator','Part-time coordinator or faculty stipend.',12,'months',4000],
+  ['Student and technical support','Help desk, WhatsApp or email support.',12,'months',1500],
+  ['Marketing','Social media ads, webinars, posters, ambassadors.',1,'per year',15000],
+  ['Accounting and admin','Invoicing, finance office time.',12,'months',500]]},
+ {id:'var',title:'3. Cost per student',sub:'Self-paced, no live sessions or proctoring, flat LMS fee: close to zero. Gateway fee and university share are deducted from the price on the right.',type:'var',rows:[
+  ['Student support','Login help and content questions by email or WhatsApp.',1,'student',5],
+  ['Extra streaming or storage','Only if the LMS caps usage and charges above the cap.',1,'student',0],
+  ['Digital certificate','Automatic in most LMSs.',1,'student',0]]}
+];
+const IN=[
+ ['price','Price per student (excl. VAT)','SAR',1500],
+ ['students','Expected students per year','',150],
+ ['years','Spread setup cost over','years',3],
+ ['fee','Payment gateway fee','%',2.5],
+ ['disc','Discounts and scholarships','%',10],
+ ['share','University share of revenue','%',15],
+ ['cont','Contingency on costs','%',10]
+];
+const KEY='sple-cost-v3';
+let state=load();
+function defaults(){const s={rows:{},inp:{}};DATA.forEach(b=>b.rows.forEach((r,i)=>s.rows[b.id+i]=[r[2],r[4]]));IN.forEach(x=>s.inp[x[0]]=x[3]);return s}
+function load(){try{const v=JSON.parse(localStorage.getItem(KEY));if(v&&v.rows&&v.inp)return v}catch(e){}return defaults()}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}}
+const f=n=>isFinite(n)?Math.round(n).toLocaleString('en-US'):'–';
+const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function render(){
+ document.getElementById('sections').innerHTML=DATA.map(b=>`<section class="block"><div class="bhead"><h2>${b.title}</h2><span class="sum" id="sum-${b.id}"></span><span class="sub">${b.sub}</span></div><div class="tbl"><table><thead><tr><th>Item and what to consider</th><th class="n">Qty</th><th>Unit</th><th class="n">Unit cost</th><th class="n">Total</th></tr></thead><tbody>${b.rows.map((r,i)=>{const k=b.id+i;return`<tr><td><div class="item">${esc(r[0])}</div><div class="hint">${esc(r[1])}</div></td><td class="n"><input type="number" min="0" step="any" id="q-${k}" data-k="${k}" data-j="0" value="${state.rows[k][0]}" aria-label="${esc(r[0])} quantity"></td><td><span class="unit">${r[3]}</span></td><td class="n"><input type="number" min="0" step="any" id="c-${k}" data-k="${k}" data-j="1" value="${state.rows[k][1]}" aria-label="${esc(r[0])} unit cost"></td><td class="n tot" id="t-${k}"></td></tr>`}).join('')}</tbody></table></div></section>`).join('');
+ document.getElementById('inputs').innerHTML=IN.map(x=>`<div class="inrow"><label for="in-${x[0]}">${x[1]}${x[2]?` <span class="unit">(${x[2]})</span>`:''}</label><input type="number" min="0" step="any" id="in-${x[0]}" data-in="${x[0]}" value="${state.inp[x[0]]}"></div>`).join('');
+ calc();
+}
+function calc(){
+ const tot={one:0,fix:0,var:0};
+ DATA.forEach(b=>{let s=0;b.rows.forEach((r,i)=>{const k=b.id+i,v=(+state.rows[k][0]||0)*(+state.rows[k][1]||0);s+=v;document.getElementById('t-'+k).textContent=f(v)});tot[b.type]=s;document.getElementById('sum-'+b.id).textContent='SAR '+f(s)+(b.type==='var'?' / student':'')});
+ const p=state.inp,yrs=Math.max(+p.years||1,1),am=tot.one/yrs,cont=(am+tot.fix)*(+p.cont||0)/100,ann=am+tot.fix+cont;
+ const varC=tot.var*(1+(+p.cont||0)/100);
+ const eff=(+p.price||0)*(1-(+p.disc||0)/100),net=eff*(1-((+p.fee||0)+(+p.share||0))/100),cm=net-varC;
+ const n=+p.students||0,be=cm>0?Math.ceil(ann/cm):Infinity,prof=n*cm-ann;
+ const keep=(1-(+p.disc||0)/100)*(1-((+p.fee||0)+(+p.share||0))/100);
+ const priceNeed=n>0&&keep>0?(ann/n+varC)/keep:Infinity;
+ const set=(id,v,cls)=>{const e=document.getElementById(id);e.textContent=v;e.className=cls||''};
+ set('sOne','SAR '+f(tot.one));set('sAm','SAR '+f(am));set('sFix','SAR '+f(tot.fix));set('sCont','SAR '+f(cont));set('sAnn','SAR '+f(ann));
+ set('sNet','SAR '+f(net));set('sVar','SAR '+f(varC));set('sCM','SAR '+f(cm),cm>0?'pos':'neg');
+ set('sRev','SAR '+f(n*eff));set('sProf','SAR '+f(prof),prof>=0?'pos':'neg');set('sPrice','SAR '+f(priceNeed));
+ const b=document.getElementById('be');b.textContent=isFinite(be)?be.toLocaleString('en-US'):'Not reachable';
+ b.className=isFinite(be)&&be<=n?'pos':'neg';
+ document.getElementById('beNote').textContent=isFinite(be)?`students per year (you expect ${n})`:'price does not cover the cost per student';
+ document.getElementById('beBox').className='big '+(isFinite(be)&&be<=n?'ok':'no');
+ const ok=prof>=0;
+ document.getElementById('pBox').className='big '+(ok?'ok':'no');
+ document.getElementById('pLbl').textContent=ok?'Profit':'Loss';
+ const pb=document.getElementById('pBig');pb.textContent=f(Math.abs(prof));pb.className=ok?'pos':'neg';
+ document.getElementById('pNote').textContent=`SAR per year with ${n} students`;
+ document.getElementById('calcline').textContent=`${n} students × ${f(cm)} margin − ${f(ann)} annual cost = ${ok?'':'−'}${f(Math.abs(prof))}`;
+}
+document.addEventListener('input',e=>{const t=e.target;if(t.dataset.k){state.rows[t.dataset.k][+t.dataset.j]=t.value;save();calc()}else if(t.dataset.in){state.inp[t.dataset.in]=t.value;save();calc()}});
+document.getElementById('reset').addEventListener('click',()=>{state=defaults();save();render()});
+render();
+</script>
+</body>
+</html>
